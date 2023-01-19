@@ -33,9 +33,9 @@ DATA = {
     "transAmount": "5000"
 }
 
-
 def get_currency_nicehash():
-    return requests.get("https://api2.nicehash.com/exchange/api/v2/info/prices").json()
+    get_json = requests.get("https://api2.nicehash.com/exchange/api/v2/info/prices").json()
+    return {'BTCUSDT':get_json['BTCUSDT'], "LTCBTC":get_json["LTCBTC"], "LTCUSDT":get_json["LTCUSDT"]}
 
 
 def get_currency_binance():
@@ -49,18 +49,25 @@ def start(message):
 
 
 @bot.message_handler(commands=['help'])
-def help(message):
+def help_(message):
     bot.send_message(message.chat.id, 'Just enter you BTC (only numbers) balance.\n'
                                       'LTC price from nicehash \n'
                                       'USDT to rub price from p2p market on Binance\n'
                                       '/btc to get BTC price\n'
-                                      '/ref to get links to nicehash and binance')
+                                      '/ref to get links to nicehash and binance\n'
+                                      '/rub to get USDT price from binance')
 
 
 @bot.message_handler(commands=['btc'])
 def btc_price(message):
     btc_prc = get_currency_nicehash()['BTCUSDT']
     bot.send_message(message.chat.id, f'BTC price in USD {btc_prc}')
+
+
+@bot.message_handler(commands=['rub'])
+def p2p_rub(message):
+    usd_rub = get_currency_binance()
+    bot.send_message(message.chat.id, f'USDT is sold at price {usd_rub}')
 
 
 @bot.message_handler(commands=['ref'])
@@ -87,8 +94,8 @@ def get_user_text(message):
         btc_balance = float(message.text.replace(',', '.', 1))
     except ValueError:
         return bot.send_message(message.chat.id, 'Please enter numbers only')
-    ltc_cur = get_currency_nicehash()["LTCBTC"]
-    usdt_cur = get_currency_nicehash()["LTCUSDT"]
+    currencies = get_currency_nicehash()
+    ltc_cur, usdt_cur = currencies["LTCBTC"], currencies["LTCUSDT"]
     ltc_balance = ((btc_balance / ltc_cur) - ((btc_balance / ltc_cur) * 0.004)) - 0.00002
     p2p_usdt_rub = float(get_currency_binance())
     rub_balance = ltc_balance * usdt_cur * p2p_usdt_rub
