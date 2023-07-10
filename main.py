@@ -42,6 +42,14 @@ def get_currency_binance():
     return requests.post("https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
                          headers=HEADERS, json=DATA).json()['data'][0]['adv']['price']
 
+def count_currecy(btc_balance):
+    currencies = get_currency_nicehash()
+    ltc_cur, usdt_cur = currencies["LTCBTC"], currencies["LTCUSDT"]
+    ltc_balance = ((btc_balance / ltc_cur) - ((btc_balance / ltc_cur) * 0.004)) - 0.00002
+    p2p_usdt_rub = float(get_currency_binance())
+    rub_balance = ltc_balance * usdt_cur * p2p_usdt_rub
+    return ltc_cur, ltc_balance, usdt_cur, p2p_usdt_rub, rub_balance
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -89,16 +97,12 @@ def ref_link_one(message):
 
 
 @bot.message_handler(content_types=['text'])
-def get_user_text(message):
+def btc_balance_to_rub(message):
     try:
         btc_balance = float(message.text.replace(',', '.', 1))
     except ValueError:
         return bot.send_message(message.chat.id, 'Please enter numbers only')
-    currencies = get_currency_nicehash()
-    ltc_cur, usdt_cur = currencies["LTCBTC"], currencies["LTCUSDT"]
-    ltc_balance = ((btc_balance / ltc_cur) - ((btc_balance / ltc_cur) * 0.004)) - 0.00002
-    p2p_usdt_rub = float(get_currency_binance())
-    rub_balance = ltc_balance * usdt_cur * p2p_usdt_rub
+    ltc_cur, ltc_balance, usdt_cur, p2p_usdt_rub, rub_balance = count_currecy(btc_balance)
     bot.send_message(message.chat.id,
                      f"LTC to BTC = {ltc_cur}\nLTC Balance = {ltc_balance:.5f}\n"
                      f"LTC to USD = {usdt_cur}\nP2P USDT to RUB = {p2p_usdt_rub}\nYour income = {rub_balance:.2f} RUB")
